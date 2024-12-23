@@ -9,17 +9,25 @@ st.title("Analyze Air Quality Data")
 st.write("Tugas Analisis")
 
 # Extract ZIP file containing data
-zip_file_path = "Data.zip"
-data_folder = "./Data"
-if not os.path.exists(data_folder):
-    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
-        zip_ref.extractall(data_folder)
+zip_path = "./Data.zip"
+extract_to = "./Data"
 
-folder_path = data_folder
-files = [file for file in os.listdir(folder_path) if file.endswith('.csv')]
-combined_data = pd.concat([
-    pd.read_csv(os.path.join(folder_path, file)).assign(station=file.split('.')[0]) for file in files
-], ignore_index=True)
+if not os.path.exists(extract_to):
+    os.makedirs(extract_to)
+
+with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+    zip_ref.extractall(extract_to)
+
+# List all files in the extracted folder
+files = [file for file in os.listdir(extract_to) if file.endswith('.csv')]
+
+# Combine data if CSV files are found
+if files:
+    combined_data = pd.concat([
+        pd.read_csv(os.path.join(extract_to, file)).assign(station=file.split('.')[0]) for file in files
+    ], ignore_index=True)
+else:
+    combined_data = pd.DataFrame()  # Empty DataFrame as fallback
 
 cd = combined_data.dropna()
 cd.drop(['month', 'day', 'hour', 'wd'], axis=1, inplace=True)
