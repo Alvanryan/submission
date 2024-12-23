@@ -3,11 +3,19 @@ import pandas as pd
 import os
 import seaborn as sns
 import matplotlib.pyplot as plt
+import zipfile
 
 st.title("Analyze Air Quality Data")
 st.write("Tugas Analisis")
 
-folder_path = "./Data"
+# Extract ZIP file containing data
+zip_file_path = "Data.zip"
+data_folder = "./Data"
+if not os.path.exists(data_folder):
+    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+        zip_ref.extractall(data_folder)
+
+folder_path = data_folder
 files = [file for file in os.listdir(folder_path) if file.endswith('.csv')]
 combined_data = pd.concat([
     pd.read_csv(os.path.join(folder_path, file)).assign(station=file.split('.')[0]) for file in files
@@ -52,10 +60,13 @@ cd['Pollution_Index'] = (
     cd['O3'] * weights['O3']
 )
 
+# Calculate yearly average pollution index
 yearly_pollution_avg = cd.groupby(['year', 'station'])['Pollution_Index'].mean().reset_index()
 
+# Add interactive line chart options
 show_all_stations = st.checkbox("Show all stations", value=True)
 if show_all_stations:
+    # Show line chart for all stations
     fig, ax = plt.subplots(figsize=(14, 7))
     sns.lineplot(
         data=yearly_pollution_avg, 
@@ -72,6 +83,7 @@ if show_all_stations:
     ax.legend(title='Station', bbox_to_anchor=(1.05, 1), loc='upper left')
     st.pyplot(fig)
 else:
+    # Select a station to display
     selected_station_line = st.selectbox("Select a station for line chart:", options=stations)
     filtered_data = yearly_pollution_avg[yearly_pollution_avg['station'] == selected_station_line]
     
@@ -120,9 +132,12 @@ ax.grid(alpha=0.3)
 ax.legend(title="Legend", bbox_to_anchor=(1.05, 1), loc='upper left')
 st.pyplot(fig)
 
+st.header("Korelasi antara Parameter Mateorologi dengan Polusi")
+
 correlation_data = station_data[meteorology_params + pollution_params]
-correlation_matrix = correlation_data[meteorology_params].corrwith(correlation_data[pollution_params])
-correlation_matrix = correlation_data.corr().loc[pollution_params, meteorology_params, ]
+correlation_matrix = correlation_data.corr()
+
+correlation_matrix = correlation_matrix.loc[meteorology_params, pollution_params]
 
 fig, ax = plt.subplots(figsize=(10, 8))
 sns.heatmap(
@@ -131,7 +146,7 @@ sns.heatmap(
     fmt=".2f", 
     cmap="coolwarm", 
     cbar=True, 
+    square=True, 
     ax=ax
 )
-ax.set_title("Korelasi antara parameter Meteorologi dengan Polusi", fontsize=16)
 st.pyplot(fig)
